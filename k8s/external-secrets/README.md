@@ -19,3 +19,5 @@ kubectl annotate serviceaccount external-secrets \
 ```
 
 Application Helm charts create `ExternalSecret` resources. They do not store secret values in Git.
+The manifests use `external-secrets.io/v1`, matching the current External
+Secrets Operator CRDs installed by the Helm chart.
