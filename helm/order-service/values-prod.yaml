@@ -1,0 +1,22 @@
+replicaCount: 3
+fullnameOverride: edfp-prod-order-service
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-prod-order-service
+  tag: prod
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_PROD_ORDER_SERVICE_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: prod
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/prod/order-service/database-url
+    REDIS_URL: /edfp/prod/order-service/redis-url
+    ORDER_EVENTS_QUEUE_URL: /edfp/prod/order-service/order-events-queue-url
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

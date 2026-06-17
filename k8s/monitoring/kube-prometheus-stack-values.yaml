@@ -1,0 +1,11 @@
+grafana:
+  enabled: true
+  adminPassword: change-me-after-install
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+
+alertmanager:
+  enabled: true

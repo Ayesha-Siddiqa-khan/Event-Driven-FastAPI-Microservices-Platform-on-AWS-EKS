@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "notification-worker.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "notification-worker.name" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "notification-worker.name" . }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: notification-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: {{ include "notification-worker.fullname" . }}-config
+            - secretRef:
+                name: {{ include "notification-worker.fullname" . }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.livenessPath }}
+              port: 8000
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readinessPath }}
+              port: 8000
+          resources:
+{{ toYaml .Values.resources | indent 12 }}

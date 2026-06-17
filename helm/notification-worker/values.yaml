@@ -1,0 +1,49 @@
+replicaCount: 1
+fullnameOverride: ""
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+serviceAccount:
+  create: true
+  name: notification-worker
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+service:
+  type: ClusterIP
+  port: 8000
+config:
+  SERVICE_NAME: notification-worker
+  ENVIRONMENT: dev
+  AWS_REGION: us-east-1
+  WORKER_POLL_INTERVAL_SECONDS: "5"
+  SQS_WAIT_TIME_SECONDS: "10"
+  SQS_MAX_MESSAGES: "5"
+  SQS_MAX_NUMBER_OF_MESSAGES: "5"
+  LOG_LEVEL: INFO
+externalSecrets:
+  enabled: true
+  secretStoreName: aws-secrets-manager
+  refreshInterval: 1h
+  data:
+    DATABASE_URL: /edfp/dev/notification-worker/database-url
+    NOTIFICATION_EVENTS_QUEUE_URL: /edfp/dev/notification-worker/notification-events-queue-url
+migration:
+  enabled: true
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+probes:
+  livenessPath: /health
+  readinessPath: /ready
+keda:
+  enabled: true
+  minReplicaCount: 1
+  maxReplicaCount: 3
+  queueURLSecretKey: NOTIFICATION_EVENTS_QUEUE_URL
+  queueLength: "5"
+  awsRegion: us-east-1

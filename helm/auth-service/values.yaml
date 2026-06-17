@@ -1,0 +1,37 @@
+replicaCount: 1
+fullnameOverride: ""
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+serviceAccount:
+  create: true
+  name: auth-service
+  annotations: {}
+service:
+  type: ClusterIP
+  port: 8000
+config:
+  SERVICE_NAME: auth-service
+  ENVIRONMENT: dev
+  SESSION_TTL_SECONDS: "3600"
+  LOG_LEVEL: INFO
+externalSecrets:
+  enabled: true
+  secretStoreName: aws-secrets-manager
+  refreshInterval: 1h
+  data:
+    DATABASE_URL: /edfp/dev/auth-service/database-url
+    REDIS_URL: /edfp/dev/auth-service/redis-url
+migration:
+  enabled: true
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+probes:
+  livenessPath: /health
+  readinessPath: /ready

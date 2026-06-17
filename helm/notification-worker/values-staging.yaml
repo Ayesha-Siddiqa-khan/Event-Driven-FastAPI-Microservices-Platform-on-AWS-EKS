@@ -1,0 +1,17 @@
+replicaCount: 1
+fullnameOverride: edfp-staging-notification-worker
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-staging-notification-worker
+  tag: staging
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_STAGING_NOTIFICATION_WORKER_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: staging
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/staging/notification-worker/database-url
+    NOTIFICATION_EVENTS_QUEUE_URL: /edfp/staging/notification-worker/notification-events-queue-url
+keda:
+  minReplicaCount: 1
+  maxReplicaCount: 5

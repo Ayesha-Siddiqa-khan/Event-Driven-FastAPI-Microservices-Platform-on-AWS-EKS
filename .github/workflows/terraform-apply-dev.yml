@@ -1,0 +1,43 @@
+name: Terraform Apply Dev
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["develop"]
+    paths:
+      - "infra/terraform/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Terraform init
+        run: terraform -chdir=infra/terraform/envs/dev init
+
+      - name: Terraform apply
+        run: |
+          terraform -chdir=infra/terraform/envs/dev apply -auto-approve \
+            -var="github_org=${{ github.repository_owner }}" \
+            -var="github_repo=${{ github.event.repository.name }}"
+
+      - name: Terraform outputs
+        run: terraform -chdir=infra/terraform/envs/dev output

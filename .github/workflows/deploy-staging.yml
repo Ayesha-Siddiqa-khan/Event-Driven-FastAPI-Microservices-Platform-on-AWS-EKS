@@ -1,0 +1,65 @@
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      ENVIRONMENT: staging
+      NAMESPACE: edfp-staging
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: azure/setup-helm@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Build, push, and deploy staging
+        run: |
+          export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          export GIT_SHA="${GITHUB_SHA::12}"
+          export ORDER_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-staging-order-service-irsa --query Role.Arn --output text)"
+          export PAYMENT_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-staging-payment-service-irsa --query Role.Arn --output text)"
+          export NOTIFICATION_WORKER_ROLE_ARN="$(aws iam get-role --role-name edfp-staging-notification-worker-irsa --query Role.Arn --output text)"
+          ./scripts/build-all-images.sh
+          ./scripts/push-all-images.sh
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name edfp-staging-eks
+          kubectl apply -f k8s/namespaces/staging.yaml
+          helm upgrade --install edfp-staging-auth-service helm/auth-service -n "${NAMESPACE}" -f helm/auth-service/values-staging.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-staging-auth-service" \
+            --set image.tag="${GIT_SHA}"
+          helm upgrade --install edfp-staging-order-service helm/order-service -n "${NAMESPACE}" -f helm/order-service/values-staging.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-staging-order-service" \
+            --set image.tag="${GIT_SHA}" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${ORDER_SERVICE_ROLE_ARN}"
+          helm upgrade --install edfp-staging-payment-service helm/payment-service -n "${NAMESPACE}" -f helm/payment-service/values-staging.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-staging-payment-service" \
+            --set image.tag="${GIT_SHA}" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${PAYMENT_SERVICE_ROLE_ARN}"
+          helm upgrade --install edfp-staging-notification-worker helm/notification-worker -n "${NAMESPACE}" -f helm/notification-worker/values-staging.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-staging-notification-worker" \
+            --set image.tag="${GIT_SHA}" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${NOTIFICATION_WORKER_ROLE_ARN}"
+          helm upgrade --install edfp-staging-api-gateway helm/api-gateway -n "${NAMESPACE}" -f helm/api-gateway/values-staging.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-staging-api-gateway" \
+            --set image.tag="${GIT_SHA}"
+          set +e
+          ENVIRONMENT=staging NAMESPACE="${NAMESPACE}" ./scripts/smoke-test.sh
+          result=$?
+          if [[ $result -ne 0 ]]; then
+            for release in edfp-staging-api-gateway edfp-staging-notification-worker edfp-staging-payment-service edfp-staging-order-service edfp-staging-auth-service; do
+              helm rollback "$release" -n "${NAMESPACE}" || true
+              kubectl rollout status deployment/"$release" -n "${NAMESPACE}" --timeout=120s || true
+            done
+            exit $result
+          fi

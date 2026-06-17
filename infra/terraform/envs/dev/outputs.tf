@@ -1,0 +1,43 @@
+output "account_id" {
+  value = data.aws_caller_identity.current.account_id
+}
+
+output "aws_region" {
+  value = var.aws_region
+}
+
+output "cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "ecr_repository_urls" {
+  value = module.ecr.repository_urls
+}
+
+output "rds_endpoint" {
+  value = module.rds.endpoint
+}
+
+output "redis_endpoint" {
+  value = module.redis.primary_endpoint_address
+}
+
+output "order_events_queue_url" {
+  value = module.sqs.order_events_queue_url
+}
+
+output "notification_events_queue_url" {
+  value = module.sqs.notification_events_queue_url
+}
+
+output "github_actions_role_arn" {
+  value = module.github_oidc.role_arn
+}
+
+output "irsa_role_arns" {
+  value = module.irsa.role_arns
+}
+
+output "secret_arns" {
+  value = module.secrets.secret_arns
+}

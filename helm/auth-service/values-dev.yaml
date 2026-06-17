@@ -1,0 +1,11 @@
+replicaCount: 1
+fullnameOverride: edfp-dev-auth-service
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-dev-auth-service
+  tag: dev
+config:
+  ENVIRONMENT: dev
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/dev/auth-service/database-url
+    REDIS_URL: /edfp/dev/auth-service/redis-url

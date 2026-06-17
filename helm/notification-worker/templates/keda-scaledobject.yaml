@@ -1,0 +1,27 @@
+{{- if .Values.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ include "notification-worker.fullname" . }}-aws-auth
+spec:
+  podIdentity:
+    provider: aws-eks
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "notification-worker.fullname" . }}
+spec:
+  scaleTargetRef:
+    name: {{ include "notification-worker.fullname" . }}
+  minReplicaCount: {{ .Values.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: {{ include "notification-worker.fullname" . }}-aws-auth
+      metadata:
+        queueURLFromEnv: {{ .Values.keda.queueURLSecretKey }}
+        queueLength: {{ .Values.keda.queueLength | quote }}
+        awsRegion: {{ .Values.keda.awsRegion }}
+{{- end }}

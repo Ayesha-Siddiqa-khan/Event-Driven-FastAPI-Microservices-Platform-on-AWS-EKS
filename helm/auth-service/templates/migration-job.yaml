@@ -1,0 +1,23 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "auth-service.fullname" . }}-migrate
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "auth-service.fullname" . }}-config
+            - secretRef:
+                name: {{ include "auth-service.fullname" . }}
+{{- end }}

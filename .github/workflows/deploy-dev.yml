@@ -1,0 +1,100 @@
+name: Deploy Dev
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["develop"]
+    paths:
+      - "apps/**"
+      - "helm/**"
+      - "scripts/**"
+      - ".github/workflows/deploy-dev.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      ENVIRONMENT: dev
+      NAMESPACE: edfp-dev
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: azure/setup-helm@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Resolve AWS account and cluster
+        run: |
+          echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_ENV"
+          echo "CLUSTER_NAME=edfp-dev-eks" >> "$GITHUB_ENV"
+          echo "ORDER_SERVICE_ROLE_ARN=$(aws iam get-role --role-name edfp-dev-order-service-irsa --query Role.Arn --output text)" >> "$GITHUB_ENV"
+          echo "PAYMENT_SERVICE_ROLE_ARN=$(aws iam get-role --role-name edfp-dev-payment-service-irsa --query Role.Arn --output text)" >> "$GITHUB_ENV"
+          echo "NOTIFICATION_WORKER_ROLE_ARN=$(aws iam get-role --role-name edfp-dev-notification-worker-irsa --query Role.Arn --output text)" >> "$GITHUB_ENV"
+
+      - name: Build and push Docker images
+        run: |
+          GIT_SHA="${GITHUB_SHA::12}" ./scripts/build-all-images.sh
+          GIT_SHA="${GITHUB_SHA::12}" ./scripts/push-all-images.sh
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region "${AWS_REGION}" --name "${CLUSTER_NAME}"
+
+      - name: Apply namespace
+        run: kubectl apply -f k8s/namespaces/dev.yaml
+
+      - name: Deploy Helm releases
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_SHA::12}"
+          account="${AWS_ACCOUNT_ID}"
+          region="${AWS_REGION}"
+          ns="${NAMESPACE}"
+
+          helm upgrade --install edfp-dev-auth-service helm/auth-service -n "$ns" -f helm/auth-service/values-dev.yaml --wait \
+            --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-auth-service" \
+            --set image.tag="$tag"
+
+          helm upgrade --install edfp-dev-order-service helm/order-service -n "$ns" -f helm/order-service/values-dev.yaml --wait \
+            --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-order-service" \
+            --set image.tag="$tag" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${ORDER_SERVICE_ROLE_ARN}"
+
+          helm upgrade --install edfp-dev-payment-service helm/payment-service -n "$ns" -f helm/payment-service/values-dev.yaml --wait \
+            --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-payment-service" \
+            --set image.tag="$tag" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${PAYMENT_SERVICE_ROLE_ARN}"
+
+          helm upgrade --install edfp-dev-notification-worker helm/notification-worker -n "$ns" -f helm/notification-worker/values-dev.yaml --wait \
+            --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-notification-worker" \
+            --set image.tag="$tag" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${NOTIFICATION_WORKER_ROLE_ARN}"
+
+          helm upgrade --install edfp-dev-api-gateway helm/api-gateway -n "$ns" -f helm/api-gateway/values-dev.yaml --wait \
+            --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-api-gateway" \
+            --set image.tag="$tag"
+
+      - name: Smoke test and rollback on failure
+        run: |
+          set +e
+          ENVIRONMENT=dev NAMESPACE="${NAMESPACE}" ./scripts/smoke-test.sh
+          result=$?
+          if [[ $result -ne 0 ]]; then
+            for release in edfp-dev-api-gateway edfp-dev-notification-worker edfp-dev-payment-service edfp-dev-order-service edfp-dev-auth-service; do
+              helm rollback "$release" -n "${NAMESPACE}" || true
+              kubectl rollout status deployment/"$release" -n "${NAMESPACE}" --timeout=120s || true
+            done
+            exit $result
+          fi

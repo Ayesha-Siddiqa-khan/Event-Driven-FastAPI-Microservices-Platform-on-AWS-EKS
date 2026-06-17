@@ -1,0 +1,11 @@
+replicaCount: 2
+fullnameOverride: edfp-staging-auth-service
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-staging-auth-service
+  tag: staging
+config:
+  ENVIRONMENT: staging
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/staging/auth-service/database-url
+    REDIS_URL: /edfp/staging/auth-service/redis-url

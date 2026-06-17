@@ -1,0 +1,39 @@
+replicaCount: 1
+fullnameOverride: ""
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+serviceAccount:
+  create: true
+  name: order-service
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+service:
+  type: ClusterIP
+  port: 8000
+config:
+  SERVICE_NAME: order-service
+  ENVIRONMENT: dev
+  AWS_REGION: us-east-1
+  LOG_LEVEL: INFO
+externalSecrets:
+  enabled: true
+  secretStoreName: aws-secrets-manager
+  refreshInterval: 1h
+  data:
+    DATABASE_URL: /edfp/dev/order-service/database-url
+    REDIS_URL: /edfp/dev/order-service/redis-url
+    ORDER_EVENTS_QUEUE_URL: /edfp/dev/order-service/order-events-queue-url
+migration:
+  enabled: true
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+probes:
+  livenessPath: /health
+  readinessPath: /ready

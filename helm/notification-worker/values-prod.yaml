@@ -1,0 +1,24 @@
+replicaCount: 2
+fullnameOverride: edfp-prod-notification-worker
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-prod-notification-worker
+  tag: prod
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_PROD_NOTIFICATION_WORKER_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: prod
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/prod/notification-worker/database-url
+    NOTIFICATION_EVENTS_QUEUE_URL: /edfp/prod/notification-worker/notification-events-queue-url
+keda:
+  minReplicaCount: 1
+  maxReplicaCount: 10
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

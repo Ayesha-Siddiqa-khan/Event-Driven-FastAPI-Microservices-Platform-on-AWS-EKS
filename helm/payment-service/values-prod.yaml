@@ -1,0 +1,21 @@
+replicaCount: 3
+fullnameOverride: edfp-prod-payment-service
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-prod-payment-service
+  tag: prod
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_PROD_PAYMENT_SERVICE_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: prod
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/prod/payment-service/database-url
+    NOTIFICATION_EVENTS_QUEUE_URL: /edfp/prod/payment-service/notification-events-queue-url
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

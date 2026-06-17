@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "order-service.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "order-service.name" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "order-service.name" . }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: order-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: {{ include "order-service.fullname" . }}-config
+            - secretRef:
+                name: {{ include "order-service.fullname" . }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.livenessPath }}
+              port: 8000
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readinessPath }}
+              port: 8000
+          resources:
+{{ toYaml .Values.resources | indent 12 }}

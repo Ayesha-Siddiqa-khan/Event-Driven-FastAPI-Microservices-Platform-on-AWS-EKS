@@ -1,0 +1,17 @@
+replicaCount: 1
+fullnameOverride: edfp-dev-notification-worker
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-dev-notification-worker
+  tag: dev
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_DEV_NOTIFICATION_WORKER_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: dev
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/dev/notification-worker/database-url
+    NOTIFICATION_EVENTS_QUEUE_URL: /edfp/dev/notification-worker/notification-events-queue-url
+keda:
+  minReplicaCount: 1
+  maxReplicaCount: 3

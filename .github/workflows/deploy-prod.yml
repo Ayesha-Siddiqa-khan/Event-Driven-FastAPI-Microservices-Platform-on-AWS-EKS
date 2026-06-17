@@ -1,0 +1,65 @@
+name: Deploy Prod
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      ENVIRONMENT: prod
+      NAMESPACE: edfp-prod
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: azure/setup-helm@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Build, push, and deploy prod
+        run: |
+          export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          export GIT_SHA="${GITHUB_SHA::12}"
+          export ORDER_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-order-service-irsa --query Role.Arn --output text)"
+          export PAYMENT_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-payment-service-irsa --query Role.Arn --output text)"
+          export NOTIFICATION_WORKER_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-notification-worker-irsa --query Role.Arn --output text)"
+          ./scripts/build-all-images.sh
+          ./scripts/push-all-images.sh
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name edfp-prod-eks
+          kubectl apply -f k8s/namespaces/prod.yaml
+          helm upgrade --install edfp-prod-auth-service helm/auth-service -n "${NAMESPACE}" -f helm/auth-service/values-prod.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-auth-service" \
+            --set image.tag="${GIT_SHA}"
+          helm upgrade --install edfp-prod-order-service helm/order-service -n "${NAMESPACE}" -f helm/order-service/values-prod.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-order-service" \
+            --set image.tag="${GIT_SHA}" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${ORDER_SERVICE_ROLE_ARN}"
+          helm upgrade --install edfp-prod-payment-service helm/payment-service -n "${NAMESPACE}" -f helm/payment-service/values-prod.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-payment-service" \
+            --set image.tag="${GIT_SHA}" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${PAYMENT_SERVICE_ROLE_ARN}"
+          helm upgrade --install edfp-prod-notification-worker helm/notification-worker -n "${NAMESPACE}" -f helm/notification-worker/values-prod.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-notification-worker" \
+            --set image.tag="${GIT_SHA}" \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${NOTIFICATION_WORKER_ROLE_ARN}"
+          helm upgrade --install edfp-prod-api-gateway helm/api-gateway -n "${NAMESPACE}" -f helm/api-gateway/values-prod.yaml --wait \
+            --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-api-gateway" \
+            --set image.tag="${GIT_SHA}"
+          set +e
+          ENVIRONMENT=prod NAMESPACE="${NAMESPACE}" ./scripts/smoke-test.sh
+          result=$?
+          if [[ $result -ne 0 ]]; then
+            for release in edfp-prod-api-gateway edfp-prod-notification-worker edfp-prod-payment-service edfp-prod-order-service edfp-prod-auth-service; do
+              helm rollback "$release" -n "${NAMESPACE}" || true
+              kubectl rollout status deployment/"$release" -n "${NAMESPACE}" --timeout=120s || true
+            done
+            exit $result
+          fi

@@ -1,0 +1,14 @@
+replicaCount: 1
+fullnameOverride: edfp-dev-payment-service
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-dev-payment-service
+  tag: dev
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_DEV_PAYMENT_SERVICE_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: dev
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/dev/payment-service/database-url
+    NOTIFICATION_EVENTS_QUEUE_URL: /edfp/dev/payment-service/notification-events-queue-url

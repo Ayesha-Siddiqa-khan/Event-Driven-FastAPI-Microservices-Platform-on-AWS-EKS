@@ -12,3 +12,19 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local build artifacts
+dist/
+build/
+*.egg-info/

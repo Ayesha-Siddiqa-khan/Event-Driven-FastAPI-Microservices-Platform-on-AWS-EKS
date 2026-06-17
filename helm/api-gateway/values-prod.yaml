@@ -1,0 +1,22 @@
+replicaCount: 3
+fullnameOverride: edfp-prod-api-gateway
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-prod-api-gateway
+  tag: prod
+config:
+  SERVICE_NAME: api-gateway
+  ENVIRONMENT: prod
+externalSecrets:
+  data:
+    AUTH_SERVICE_URL: /edfp/prod/api-gateway/auth-service-url
+    ORDER_SERVICE_URL: /edfp/prod/api-gateway/order-service-url
+    PAYMENT_SERVICE_URL: /edfp/prod/api-gateway/payment-service-url
+ingress:
+  host: api.example.com
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

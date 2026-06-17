@@ -1,0 +1,15 @@
+replicaCount: 2
+fullnameOverride: edfp-staging-order-service
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-staging-order-service
+  tag: staging
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_STAGING_ORDER_SERVICE_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: staging
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/staging/order-service/database-url
+    REDIS_URL: /edfp/staging/order-service/redis-url
+    ORDER_EVENTS_QUEUE_URL: /edfp/staging/order-service/order-events-queue-url

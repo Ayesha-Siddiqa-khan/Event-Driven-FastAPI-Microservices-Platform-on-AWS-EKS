@@ -1,0 +1,12 @@
+github_org    = "YOUR_GITHUB_ORG_OR_USERNAME"
+github_repo   = "event-driven-fastapi-microservices-lab"
+github_branch = "main"
+
+single_nat_gateway    = false
+eks_node_desired_size = 3
+eks_node_min_size     = 3
+eks_node_max_size     = 6
+rds_instance_class    = "db.t4g.small"
+rds_multi_az          = true
+redis_node_type       = "cache.t4g.small"
+redis_node_count      = 2

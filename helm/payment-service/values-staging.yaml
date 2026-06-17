@@ -1,0 +1,14 @@
+replicaCount: 2
+fullnameOverride: edfp-staging-payment-service
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/edfp-staging-payment-service
+  tag: staging
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: REPLACE_WITH_STAGING_PAYMENT_SERVICE_IRSA_ROLE_ARN
+config:
+  ENVIRONMENT: staging
+externalSecrets:
+  data:
+    DATABASE_URL: /edfp/staging/payment-service/database-url
+    NOTIFICATION_EVENTS_QUEUE_URL: /edfp/staging/payment-service/notification-events-queue-url
