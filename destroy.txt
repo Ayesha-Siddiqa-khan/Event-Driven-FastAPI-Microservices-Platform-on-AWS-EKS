@@ -1,0 +1,1 @@
+terraform destroy -var="github_org=Ayesha-Siddiqa-khan" -var="github_repo=Event-Driven-FastAPI-Microservices-Platform-on-AWS-EKS"
