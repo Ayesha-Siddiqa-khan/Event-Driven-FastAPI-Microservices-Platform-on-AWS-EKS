@@ -25,7 +25,7 @@ variable "github_repo" {
 
 variable "github_branch" {
   type    = string
-  default = "develop"
+  default = "main"
 }
 
 variable "vpc_cidr" {

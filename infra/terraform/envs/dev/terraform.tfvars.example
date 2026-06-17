@@ -1,6 +1,6 @@
 github_org    = "YOUR_GITHUB_ORG_OR_USERNAME"
 github_repo   = "event-driven-fastapi-microservices-lab"
-github_branch = "develop"
+github_branch = "main"
 
 # Dev defaults are intentionally small for cost control.
 single_nat_gateway     = true
