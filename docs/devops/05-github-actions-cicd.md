@@ -23,6 +23,11 @@ Required GitHub repository variables:
 - `EKS_CLUSTER_NAME`: dev EKS cluster name, normally `edfp-dev-eks`
 - `NAMESPACE`: dev Kubernetes namespace, normally `edfp-dev`
 
+The dev workflows include defaults for these values so a missing repository
+variable does not cause `configure-aws-credentials` to fail with
+`Could not load credentials from any providers`. Still add the variables in
+GitHub so the configuration is explicit and easy to change later.
+
 The first infrastructure apply must be bootstrapped outside GitHub Actions because the OIDC role does not exist until Terraform creates it.
 
 Use GitHub Environments for staging and prod approvals.
