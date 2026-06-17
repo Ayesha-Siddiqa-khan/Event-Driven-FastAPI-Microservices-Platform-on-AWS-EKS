@@ -1,0 +1,41 @@
+flowchart TD
+    user[User / Recruiter Demo] --> dns[Route 53 optional]
+    dns --> alb[Application Load Balancer]
+    alb --> gw[api-gateway on EKS]
+
+    gw --> auth[auth-service]
+    gw --> orders[order-service]
+    gw --> payments[payment-service]
+
+    auth --> rds[(RDS PostgreSQL)]
+    auth --> redis[(ElastiCache Redis)]
+
+    orders --> rds
+    orders --> redis
+    orders --> q1[SQS order-events]
+
+    payments --> rds
+    payments --> q2[SQS notification-events]
+
+    worker[notification-worker] --> q2
+    worker --> rds
+
+    gha[GitHub Actions OIDC] --> ecr[ECR repositories]
+    gha --> eks[EKS cluster]
+    ecr --> eks
+
+    sm[Secrets Manager] --> auth
+    sm --> orders
+    sm --> payments
+    sm --> worker
+
+    prom[Prometheus] --> gw
+    prom --> auth
+    prom --> orders
+    prom --> payments
+    prom --> worker
+    graf[Grafana] --> prom
+    cw[CloudWatch] --> eks
+    cw --> rds
+    cw --> q1
+    cw --> q2

@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+prometheus-client
+SQLAlchemy
+psycopg2-binary
+alembic
+pytest
+httpx
+boto3
