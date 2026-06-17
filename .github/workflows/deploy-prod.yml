@@ -31,8 +31,8 @@ jobs:
           export ORDER_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-order-service-irsa --query Role.Arn --output text)"
           export PAYMENT_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-payment-service-irsa --query Role.Arn --output text)"
           export NOTIFICATION_WORKER_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-notification-worker-irsa --query Role.Arn --output text)"
-          ./scripts/build-all-images.sh
-          ./scripts/push-all-images.sh
+          bash ./scripts/build-all-images.sh
+          bash ./scripts/push-all-images.sh
           aws eks update-kubeconfig --region "${AWS_REGION}" --name edfp-prod-eks
           kubectl apply -f k8s/namespaces/prod.yaml
           helm upgrade --install edfp-prod-auth-service helm/auth-service -n "${NAMESPACE}" -f helm/auth-service/values-prod.yaml --wait \
@@ -54,7 +54,7 @@ jobs:
             --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-api-gateway" \
             --set image.tag="${GIT_SHA}"
           set +e
-          ENVIRONMENT=prod NAMESPACE="${NAMESPACE}" ./scripts/smoke-test.sh
+          ENVIRONMENT=prod NAMESPACE="${NAMESPACE}" bash ./scripts/smoke-test.sh
           result=$?
           if [[ $result -ne 0 ]]; then
             for release in edfp-prod-api-gateway edfp-prod-notification-worker edfp-prod-payment-service edfp-prod-order-service edfp-prod-auth-service; do

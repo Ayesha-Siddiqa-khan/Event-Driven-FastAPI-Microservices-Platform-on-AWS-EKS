@@ -31,8 +31,8 @@ jobs:
           export ORDER_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-staging-order-service-irsa --query Role.Arn --output text)"
           export PAYMENT_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-staging-payment-service-irsa --query Role.Arn --output text)"
           export NOTIFICATION_WORKER_ROLE_ARN="$(aws iam get-role --role-name edfp-staging-notification-worker-irsa --query Role.Arn --output text)"
-          ./scripts/build-all-images.sh
-          ./scripts/push-all-images.sh
+          bash ./scripts/build-all-images.sh
+          bash ./scripts/push-all-images.sh
           aws eks update-kubeconfig --region "${AWS_REGION}" --name edfp-staging-eks
           kubectl apply -f k8s/namespaces/staging.yaml
           helm upgrade --install edfp-staging-auth-service helm/auth-service -n "${NAMESPACE}" -f helm/auth-service/values-staging.yaml --wait \
@@ -54,7 +54,7 @@ jobs:
             --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-staging-api-gateway" \
             --set image.tag="${GIT_SHA}"
           set +e
-          ENVIRONMENT=staging NAMESPACE="${NAMESPACE}" ./scripts/smoke-test.sh
+          ENVIRONMENT=staging NAMESPACE="${NAMESPACE}" bash ./scripts/smoke-test.sh
           result=$?
           if [[ $result -ne 0 ]]; then
             for release in edfp-staging-api-gateway edfp-staging-notification-worker edfp-staging-payment-service edfp-staging-order-service edfp-staging-auth-service; do

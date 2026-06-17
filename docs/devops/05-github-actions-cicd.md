@@ -62,3 +62,7 @@ new run at the top of the list. Open the run and verify these steps appear:
 - create namespace `edfp-dev` if missing
 - deploy services with Helm
 - check pods and services
+
+The deploy workflows invoke repository scripts with `bash ./scripts/name.sh`.
+This avoids Linux runner permission errors when scripts are committed from a
+Windows working tree without the executable bit.

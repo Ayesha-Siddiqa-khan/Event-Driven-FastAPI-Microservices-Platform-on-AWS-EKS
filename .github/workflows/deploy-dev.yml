@@ -48,8 +48,8 @@ jobs:
 
       - name: Build and push Docker images
         run: |
-          GIT_SHA="${GITHUB_SHA::12}" ./scripts/build-all-images.sh
-          GIT_SHA="${GITHUB_SHA::12}" ./scripts/push-all-images.sh
+          GIT_SHA="${GITHUB_SHA::12}" bash ./scripts/build-all-images.sh
+          GIT_SHA="${GITHUB_SHA::12}" bash ./scripts/push-all-images.sh
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
@@ -91,7 +91,7 @@ jobs:
       - name: Smoke test and rollback on failure
         run: |
           set +e
-          ENVIRONMENT=dev NAMESPACE="${NAMESPACE}" ./scripts/smoke-test.sh
+          ENVIRONMENT=dev NAMESPACE="${NAMESPACE}" bash ./scripts/smoke-test.sh
           result=$?
           if [[ $result -ne 0 ]]; then
             for release in edfp-dev-api-gateway edfp-dev-notification-worker edfp-dev-payment-service edfp-dev-order-service edfp-dev-auth-service; do
