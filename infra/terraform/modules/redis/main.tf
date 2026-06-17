@@ -1,5 +1,6 @@
 locals {
   name = "${var.project_name}-${var.environment}-redis-main"
+  port = 6379
   tags = merge(var.tags, {
     Project     = var.project_name
     Environment = var.environment
@@ -16,12 +17,15 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "redis" {
-  for_each = toset(var.allowed_security_group_ids)
+  for_each = {
+    for index, security_group_id in var.allowed_security_group_ids :
+    tostring(index) => security_group_id
+  }
 
   security_group_id            = aws_security_group.this.id
   referenced_security_group_id = each.value
-  from_port                    = 6379
-  to_port                      = 6379
+  from_port                    = local.port
+  to_port                      = local.port
   ip_protocol                  = "tcp"
   description                  = "Redis from EKS"
 }
@@ -42,6 +46,7 @@ resource "aws_elasticache_replication_group" "this" {
   description                = "Redis cache for ${var.project_name} ${var.environment}"
   engine                     = "redis"
   engine_version             = var.engine_version
+  port                       = local.port
   node_type                  = var.node_type
   num_cache_clusters         = var.node_count
   automatic_failover_enabled = var.node_count > 1
