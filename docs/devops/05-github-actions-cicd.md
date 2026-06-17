@@ -73,3 +73,7 @@ and `ScaledObject` resources. Deploy workflows install External Secrets
 Operator and KEDA first, then wait for their CRDs before deploying the service
 charts. Without this step, Helm fails with errors such as `no matches for kind
 "ExternalSecret"`.
+
+Migration Jobs run as `post-install,post-upgrade` Helm hooks. They need the
+release ConfigMaps and ExternalSecret-backed Kubernetes Secrets to exist before
+`alembic upgrade head` can start.
