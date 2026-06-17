@@ -31,9 +31,29 @@ jobs:
           export ORDER_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-order-service-irsa --query Role.Arn --output text)"
           export PAYMENT_SERVICE_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-payment-service-irsa --query Role.Arn --output text)"
           export NOTIFICATION_WORKER_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-notification-worker-irsa --query Role.Arn --output text)"
+          export EXTERNAL_SECRETS_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-external-secrets-irsa --query Role.Arn --output text)"
+          export KEDA_OPERATOR_ROLE_ARN="$(aws iam get-role --role-name edfp-prod-keda-operator-irsa --query Role.Arn --output text)"
           bash ./scripts/build-all-images.sh
           bash ./scripts/push-all-images.sh
           aws eks update-kubeconfig --region "${AWS_REGION}" --name edfp-prod-eks
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm repo add kedacore https://kedacore.github.io/charts
+          helm repo update
+          helm upgrade --install external-secrets external-secrets/external-secrets \
+            --namespace external-secrets \
+            --create-namespace \
+            --wait \
+            --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${EXTERNAL_SECRETS_ROLE_ARN}"
+          kubectl annotate serviceaccount external-secrets -n external-secrets eks.amazonaws.com/role-arn="${EXTERNAL_SECRETS_ROLE_ARN}" --overwrite
+          kubectl wait --for=condition=Established crd/externalsecrets.external-secrets.io crd/clustersecretstores.external-secrets.io --timeout=120s
+          kubectl apply -f k8s/external-secrets/cluster-secret-store.yaml
+          helm upgrade --install keda kedacore/keda \
+            --namespace keda \
+            --create-namespace \
+            --wait \
+            --set serviceAccount.operator.annotations."eks\\.amazonaws\\.com/role-arn"="${KEDA_OPERATOR_ROLE_ARN}"
+          kubectl annotate serviceaccount keda-operator -n keda eks.amazonaws.com/role-arn="${KEDA_OPERATOR_ROLE_ARN}" --overwrite
+          kubectl wait --for=condition=Established crd/scaledobjects.keda.sh crd/triggerauthentications.keda.sh --timeout=120s
           kubectl apply -f k8s/namespaces/prod.yaml
           helm upgrade --install edfp-prod-auth-service helm/auth-service -n "${NAMESPACE}" -f helm/auth-service/values-prod.yaml --wait \
             --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-auth-service" \

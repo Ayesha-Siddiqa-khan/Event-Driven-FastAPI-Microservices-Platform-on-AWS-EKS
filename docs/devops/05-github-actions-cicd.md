@@ -59,6 +59,7 @@ new run at the top of the list. Open the run and verify these steps appear:
 - login to Amazon ECR
 - build and push Docker images
 - update kubeconfig for EKS
+- install External Secrets Operator and KEDA
 - create namespace `edfp-dev` if missing
 - deploy services with Helm
 - check pods and services
@@ -66,3 +67,9 @@ new run at the top of the list. Open the run and verify these steps appear:
 The deploy workflows invoke repository scripts with `bash ./scripts/name.sh`.
 This avoids Linux runner permission errors when scripts are committed from a
 Windows working tree without the executable bit.
+
+The application Helm charts create `ExternalSecret`, `TriggerAuthentication`,
+and `ScaledObject` resources. Deploy workflows install External Secrets
+Operator and KEDA first, then wait for their CRDs before deploying the service
+charts. Without this step, Helm fails with errors such as `no matches for kind
+"ExternalSecret"`.
