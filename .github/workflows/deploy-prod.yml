@@ -55,6 +55,9 @@ jobs:
           kubectl annotate serviceaccount keda-operator -n keda eks.amazonaws.com/role-arn="${KEDA_OPERATOR_ROLE_ARN}" --overwrite
           kubectl wait --for=condition=Established crd/scaledobjects.keda.sh crd/triggerauthentications.keda.sh --timeout=120s
           kubectl apply -f k8s/namespaces/prod.yaml
+          for service in auth-service order-service payment-service notification-worker; do
+            kubectl delete job "edfp-prod-${service}-migrate" -n "${NAMESPACE}" --ignore-not-found
+          done
           helm upgrade --install edfp-prod-auth-service helm/auth-service -n "${NAMESPACE}" -f helm/auth-service/values-prod.yaml --wait \
             --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/edfp-prod-auth-service" \
             --set image.tag="${GIT_SHA}"

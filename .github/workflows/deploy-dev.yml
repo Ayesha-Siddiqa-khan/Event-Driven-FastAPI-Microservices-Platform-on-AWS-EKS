@@ -100,6 +100,12 @@ jobs:
       - name: Create namespace if missing
         run: kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Clean up stale migration jobs
+        run: |
+          for service in auth-service order-service payment-service notification-worker; do
+            kubectl delete job "edfp-dev-${service}-migrate" -n "${NAMESPACE}" --ignore-not-found
+          done
+
       - name: Deploy Helm releases
         run: |
           set -euo pipefail

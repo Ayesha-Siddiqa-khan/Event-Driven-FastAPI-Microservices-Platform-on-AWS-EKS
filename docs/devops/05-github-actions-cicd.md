@@ -77,3 +77,7 @@ charts. Without this step, Helm fails with errors such as `no matches for kind
 Migration Jobs run as `post-install,post-upgrade` Helm hooks. They need the
 release ConfigMaps and ExternalSecret-backed Kubernetes Secrets to exist before
 `alembic upgrade head` can start.
+
+Deploy workflows delete stale migration Jobs before applying service charts.
+This cleans up failed historical hook Jobs, such as older `pre-install` jobs
+that could not start because the service account did not exist yet.
