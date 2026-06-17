@@ -15,16 +15,17 @@ GitHub Actions uses OIDC:
 - `id-token: write` is enabled in workflows
 - AWS IAM trusts only the configured repository
 
-Required GitHub repository variables:
+Required GitHub repository variables or secrets:
 
-- `AWS_ROLE_ARN`: GitHub Actions OIDC role ARN. For this lab dev account use `arn:aws:iam::257536659737:role/edfp-dev-github-actions`
+- `AWS_ROLE_ARN`: GitHub Actions OIDC role ARN. This may be a repository secret or variable. For this lab dev account use `arn:aws:iam::257536659737:role/edfp-dev-github-actions`
 - `AWS_REGION`: AWS region, normally `us-east-1`
 - `AWS_ACCOUNT_ID`: AWS account ID, normally `257536659737`
 - `EKS_CLUSTER_NAME`: dev EKS cluster name, normally `edfp-dev-eks`
 - `NAMESPACE`: dev Kubernetes namespace, normally `edfp-dev`
 
-The dev workflows include defaults for these values so a missing repository
-variable does not cause `configure-aws-credentials` to fail with
+The dev workflows include defaults for these values and read `AWS_ROLE_ARN`
+from either a variable or secret, so a missing repository variable does not cause
+`configure-aws-credentials` to fail with
 `Could not load credentials from any providers`. Still add the variables in
 GitHub so the configuration is explicit and easy to change later.
 
@@ -40,7 +41,7 @@ GitHub:
 1. The workflow files are committed to the default branch, `main`.
 2. Repository Actions are enabled under Settings -> Actions -> General.
 3. Workflow permissions allow GitHub Actions to run. OIDC does not require AWS access keys.
-4. The repository variables above exist under Settings -> Secrets and variables -> Actions -> Variables.
+4. The repository variables above exist under Settings -> Secrets and variables -> Actions -> Variables, or `AWS_ROLE_ARN` exists under Secrets.
 
 To manually run dev deployment:
 
