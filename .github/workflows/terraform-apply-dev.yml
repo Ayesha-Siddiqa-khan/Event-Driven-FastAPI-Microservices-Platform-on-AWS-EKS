@@ -2,10 +2,6 @@ name: Terraform Apply Dev
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["develop"]
-    paths:
-      - "infra/terraform/**"
 
 permissions:
   id-token: write

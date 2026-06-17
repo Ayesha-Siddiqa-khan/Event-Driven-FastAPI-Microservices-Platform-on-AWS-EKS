@@ -3,12 +3,8 @@ name: Deploy Dev
 on:
   workflow_dispatch:
   push:
-    branches: ["develop"]
-    paths:
-      - "apps/**"
-      - "helm/**"
-      - "scripts/**"
-      - ".github/workflows/deploy-dev.yml"
+    branches:
+      - main
 
 permissions:
   id-token: write
@@ -20,8 +16,10 @@ jobs:
     environment: dev
     env:
       ENVIRONMENT: dev
-      NAMESPACE: edfp-dev
+      NAMESPACE: ${{ vars.NAMESPACE || 'edfp-dev' }}
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'edfp-dev-eks' }}
       AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
     steps:
       - uses: actions/checkout@v4
@@ -38,11 +36,15 @@ jobs:
 
       - name: Resolve AWS account and cluster
         run: |
-          echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_ENV"
-          echo "CLUSTER_NAME=edfp-dev-eks" >> "$GITHUB_ENV"
+          if [[ -z "${AWS_ACCOUNT_ID}" ]]; then
+            echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_ENV"
+          fi
           echo "ORDER_SERVICE_ROLE_ARN=$(aws iam get-role --role-name edfp-dev-order-service-irsa --query Role.Arn --output text)" >> "$GITHUB_ENV"
           echo "PAYMENT_SERVICE_ROLE_ARN=$(aws iam get-role --role-name edfp-dev-payment-service-irsa --query Role.Arn --output text)" >> "$GITHUB_ENV"
           echo "NOTIFICATION_WORKER_ROLE_ARN=$(aws iam get-role --role-name edfp-dev-notification-worker-irsa --query Role.Arn --output text)" >> "$GITHUB_ENV"
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push Docker images
         run: |
@@ -50,10 +52,10 @@ jobs:
           GIT_SHA="${GITHUB_SHA::12}" ./scripts/push-all-images.sh
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --region "${AWS_REGION}" --name "${CLUSTER_NAME}"
+        run: aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
 
-      - name: Apply namespace
-        run: kubectl apply -f k8s/namespaces/dev.yaml
+      - name: Create namespace if missing
+        run: kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy Helm releases
         run: |
@@ -98,3 +100,8 @@ jobs:
             done
             exit $result
           fi
+
+      - name: Check pods and services
+        run: |
+          kubectl get pods -n "${NAMESPACE}" -o wide
+          kubectl get services -n "${NAMESPACE}" -o wide
