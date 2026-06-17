@@ -27,6 +27,32 @@ terraform plan
 terraform apply
 ```
 
-Bootstrap note: the GitHub Actions OIDC role is created by Terraform. The first `terraform apply` must be run locally with an AWS administrator/deployment identity, or from a temporary pre-existing bootstrap role. After that, store the Terraform-created role ARN in the GitHub repository variable `AWS_ROLE_ARN`.
+Dev EKS node group note: the dev managed node group uses
+`c7i-flex.large` and keeps capacity at desired/min/max `1/1/2`. AWS returned
+this type as Free Tier eligible in `us-east-1` for this account, and the small
+capacity keeps the learning environment controlled.
+
+GitHub OIDC note: the IAM OIDC provider for
+`https://token.actions.githubusercontent.com` is account-level. If it already
+exists, Terraform must reuse it instead of trying to create another provider.
+The dev configuration sets `create_github_oidc_provider = false` and references
+the existing provider ARN format:
+
+```text
+arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com
+```
+
+After this patch, rerun:
+
+```bash
+cd infra/terraform/envs/dev
+terraform plan -var="github_org=Ayesha-Siddiqa-khan" -var="github_repo=Event-Driven-FastAPI-Microservices-Platform-on-AWS-EKS"
+terraform apply -var="github_org=Ayesha-Siddiqa-khan" -var="github_repo=Event-Driven-FastAPI-Microservices-Platform-on-AWS-EKS"
+```
+
+Bootstrap note: the GitHub Actions IAM role is created by Terraform. The first
+`terraform apply` must be run locally with an AWS administrator/deployment
+identity, or from a temporary pre-existing bootstrap role. After that, store the
+Terraform-created role ARN in the GitHub repository variable `AWS_ROLE_ARN`.
 
 Repeat from `envs/staging` or `envs/prod` for higher environments.

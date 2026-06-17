@@ -4,9 +4,13 @@ github_branch = "develop"
 
 # Dev defaults are intentionally small for cost control.
 single_nat_gateway     = true
+eks_node_instance_types = ["c7i-flex.large"]
 eks_node_desired_size  = 1
 eks_node_min_size      = 1
-eks_node_max_size      = 3
+eks_node_max_size      = 2
 rds_instance_class     = "db.t4g.micro"
 redis_node_type        = "cache.t4g.micro"
 redis_node_count       = 1
+
+# GitHub's IAM OIDC provider is account-level and commonly already exists.
+create_github_oidc_provider = false

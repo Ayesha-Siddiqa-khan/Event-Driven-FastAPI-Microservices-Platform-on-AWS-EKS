@@ -144,12 +144,13 @@ module "secrets" {
 module "github_oidc" {
   source = "../../modules/iam-github-oidc"
 
-  project_name  = var.project_name
-  environment   = var.environment
-  github_org    = var.github_org
-  github_repo   = var.github_repo
-  github_branch = var.github_branch
-  tags          = local.common_tags
+  project_name                = var.project_name
+  environment                 = var.environment
+  github_org                  = var.github_org
+  github_repo                 = var.github_repo
+  github_branch               = var.github_branch
+  create_github_oidc_provider = var.create_github_oidc_provider
+  tags                        = local.common_tags
 }
 
 module "irsa" {

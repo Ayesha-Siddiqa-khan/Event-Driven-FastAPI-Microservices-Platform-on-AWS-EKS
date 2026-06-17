@@ -60,7 +60,7 @@ variable "eks_cluster_version" {
 
 variable "eks_node_instance_types" {
   type    = list(string)
-  default = ["t3.medium"]
+  default = ["c7i-flex.large"]
 }
 
 variable "eks_node_desired_size" {
@@ -75,7 +75,13 @@ variable "eks_node_min_size" {
 
 variable "eks_node_max_size" {
   type    = number
-  default = 3
+  default = 2
+}
+
+variable "create_github_oidc_provider" {
+  type        = bool
+  description = "Create the account-level GitHub Actions OIDC provider. Keep false when it already exists."
+  default     = false
 }
 
 variable "rds_instance_class" {

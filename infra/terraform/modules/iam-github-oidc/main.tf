@@ -1,6 +1,10 @@
 locals {
-  role_name = "${var.project_name}-${var.environment}-github-actions"
-  repo_sub  = "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/${var.github_branch}"
+  github_oidc_url                   = "https://token.actions.githubusercontent.com"
+  github_oidc_provider_path         = "token.actions.githubusercontent.com"
+  existing_github_oidc_provider_arn = coalesce(var.existing_github_oidc_provider_arn, "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${local.github_oidc_provider_path}")
+  github_oidc_provider_arn          = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
+  role_name                         = "${var.project_name}-${var.environment}-github-actions"
+  repo_sub                          = "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/${var.github_branch}"
   tags = merge(var.tags, {
     Project     = var.project_name
     Environment = var.environment
@@ -8,16 +12,26 @@ locals {
   })
 }
 
+data "aws_caller_identity" "current" {}
+
 data "tls_certificate" "github" {
-  url = "https://token.actions.githubusercontent.com"
+  count = var.create_github_oidc_provider ? 1 : 0
+  url   = local.github_oidc_url
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
+  count = var.create_github_oidc_provider ? 1 : 0
+
+  url             = local.github_oidc_url
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
+  thumbprint_list = [data.tls_certificate.github[0].certificates[0].sha1_fingerprint]
 
   tags = merge(local.tags, { Name = "${local.role_name}-oidc" })
+}
+
+data "aws_iam_openid_connect_provider" "github" {
+  count = var.create_github_oidc_provider ? 0 : 1
+  arn   = local.existing_github_oidc_provider_arn
 }
 
 data "aws_iam_policy_document" "trust" {
@@ -27,7 +41,7 @@ data "aws_iam_policy_document" "trust" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [local.github_oidc_provider_arn]
     }
 
     condition {
