@@ -138,3 +138,4 @@ Simple rule:
 Agent = application code inside the container
 You = Docker, AWS, Terraform, Kubernetes, Helm, CI/CD, scaling, monitoring and rollback
 ```
+
