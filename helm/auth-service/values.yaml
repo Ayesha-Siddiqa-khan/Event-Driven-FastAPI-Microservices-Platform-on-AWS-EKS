@@ -25,7 +25,7 @@ externalSecrets:
     REDIS_URL: /edfp/dev/auth-service/redis-url
 migration:
   enabled: true
-  activeDeadlineSeconds: 240
+  activeDeadlineSeconds: 900
   backoffLimit: 0
   pgConnectTimeout: "10"
   ttlSecondsAfterFinished: 300

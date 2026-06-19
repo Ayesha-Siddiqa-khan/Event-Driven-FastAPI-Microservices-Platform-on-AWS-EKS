@@ -7,7 +7,7 @@ metadata:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
-  activeDeadlineSeconds: {{ .Values.migration.activeDeadlineSeconds | default 240 }}
+  activeDeadlineSeconds: {{ .Values.migration.activeDeadlineSeconds | default 900 }}
   backoffLimit: {{ .Values.migration.backoffLimit | default 0 }}
   ttlSecondsAfterFinished: {{ .Values.migration.ttlSecondsAfterFinished | default 300 }}
   template:
