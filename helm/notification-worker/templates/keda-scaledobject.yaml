@@ -5,7 +5,8 @@ metadata:
   name: {{ include "notification-worker.fullname" . }}-aws-auth
 spec:
   podIdentity:
-    provider: aws-eks
+    provider: {{ .Values.keda.podIdentityProvider | default "aws" }}
+    identityOwner: {{ .Values.keda.identityOwner | default "keda" }}
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject

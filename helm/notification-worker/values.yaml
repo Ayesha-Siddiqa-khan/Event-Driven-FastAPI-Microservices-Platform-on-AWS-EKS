@@ -47,6 +47,8 @@ keda:
   enabled: true
   minReplicaCount: 1
   maxReplicaCount: 3
+  podIdentityProvider: aws
+  identityOwner: keda
   queueURLSecretKey: NOTIFICATION_EVENTS_QUEUE_URL
   queueLength: "5"
   awsRegion: us-east-1
