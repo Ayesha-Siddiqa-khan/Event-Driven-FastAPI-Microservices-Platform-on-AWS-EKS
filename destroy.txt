@@ -1,6 +1,6 @@
+cd /d E:\github\event-driven-fastapi-microservices-lab\infra\terraform\envs\dev
 terraform destroy -var="github_org=Ayesha-Siddiqa-khan" -var="github_repo=Event-Driven-FastAPI-Microservices-Platform-on-AWS-EKS"
 
 
 
 
-#hi

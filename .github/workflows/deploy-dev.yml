@@ -101,6 +101,26 @@ jobs:
       - name: Create namespace if missing
         run: kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Sync application external secrets
+        run: |
+          set -euo pipefail
+
+          for service in auth-service order-service payment-service notification-worker api-gateway; do
+            release="edfp-dev-${service}"
+            chart="helm/${service}"
+            values="helm/${service}/values-dev.yaml"
+
+            helm template "${release}" "${chart}" \
+              -n "${NAMESPACE}" \
+              -f "${values}" \
+              --show-only templates/externalsecret.yaml \
+              | kubectl apply -n "${NAMESPACE}" -f -
+
+            kubectl wait --for=condition=Ready "externalsecret/${release}" \
+              -n "${NAMESPACE}" \
+              --timeout=180s
+          done
+
       - name: Clean up stale migration jobs
         run: |
           for service in auth-service order-service payment-service notification-worker; do
