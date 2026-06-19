@@ -17,7 +17,22 @@ spec:
       containers:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: ["alembic", "upgrade", "head"]
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              attempts=10
+              until alembic upgrade head; do
+                attempts=$((attempts - 1))
+                if [ "$attempts" -le 0 ]; then
+                  echo "database migration failed after retries"
+                  exit 1
+                fi
+                echo "database migration failed; retrying in 10 seconds (${attempts} attempts remaining)"
+                sleep 10
+              done
+          env:
+            - name: PGCONNECT_TIMEOUT
+              value: {{ .Values.migration.pgConnectTimeout | default "10" | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "payment-service.fullname" . }}-config

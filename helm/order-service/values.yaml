@@ -28,7 +28,8 @@ externalSecrets:
 migration:
   enabled: true
   activeDeadlineSeconds: 900
-  backoffLimit: 1
+  backoffLimit: 0
+  pgConnectTimeout: "10"
   ttlSecondsAfterFinished: 300
 resources:
   requests:
