@@ -27,6 +27,9 @@ externalSecrets:
     ORDER_EVENTS_QUEUE_URL: /edfp/dev/order-service/order-events-queue-url
 migration:
   enabled: true
+  activeDeadlineSeconds: 900
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 300
 resources:
   requests:
     cpu: 100m

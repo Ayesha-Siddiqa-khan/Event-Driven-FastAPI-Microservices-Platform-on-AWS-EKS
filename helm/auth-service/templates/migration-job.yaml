@@ -7,14 +7,32 @@ metadata:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
+  activeDeadlineSeconds: {{ .Values.migration.activeDeadlineSeconds | default 240 }}
+  backoffLimit: {{ .Values.migration.backoffLimit | default 0 }}
+  ttlSecondsAfterFinished: {{ .Values.migration.ttlSecondsAfterFinished | default 300 }}
   template:
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Never
       serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: ["alembic", "upgrade", "head"]
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              attempts=10
+              until alembic upgrade head; do
+                attempts=$((attempts - 1))
+                if [ "$attempts" -le 0 ]; then
+                  echo "database migration failed after retries"
+                  exit 1
+                fi
+                echo "database migration failed; retrying in 10 seconds (${attempts} attempts remaining)"
+                sleep 10
+              done
+          env:
+            - name: PGCONNECT_TIMEOUT
+              value: {{ .Values.migration.pgConnectTimeout | default "10" | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "auth-service.fullname" . }}-config

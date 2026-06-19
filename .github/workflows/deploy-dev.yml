@@ -21,6 +21,7 @@ jobs:
       AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID || '257536659737' }}
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'edfp-dev-eks' }}
       AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN || 'arn:aws:iam::257536659737:role/edfp-dev-github-actions' }}
+      HELM_TIMEOUT: ${{ vars.HELM_TIMEOUT || '20m' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -114,26 +115,26 @@ jobs:
           region="${AWS_REGION}"
           ns="${NAMESPACE}"
 
-          helm upgrade --install edfp-dev-auth-service helm/auth-service -n "$ns" -f helm/auth-service/values-dev.yaml --wait \
+          helm upgrade --install edfp-dev-auth-service helm/auth-service -n "$ns" -f helm/auth-service/values-dev.yaml --wait --timeout "$HELM_TIMEOUT" \
             --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-auth-service" \
             --set image.tag="$tag"
 
-          helm upgrade --install edfp-dev-order-service helm/order-service -n "$ns" -f helm/order-service/values-dev.yaml --wait \
+          helm upgrade --install edfp-dev-order-service helm/order-service -n "$ns" -f helm/order-service/values-dev.yaml --wait --timeout "$HELM_TIMEOUT" \
             --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-order-service" \
             --set image.tag="$tag" \
             --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${ORDER_SERVICE_ROLE_ARN}"
 
-          helm upgrade --install edfp-dev-payment-service helm/payment-service -n "$ns" -f helm/payment-service/values-dev.yaml --wait \
+          helm upgrade --install edfp-dev-payment-service helm/payment-service -n "$ns" -f helm/payment-service/values-dev.yaml --wait --timeout "$HELM_TIMEOUT" \
             --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-payment-service" \
             --set image.tag="$tag" \
             --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${PAYMENT_SERVICE_ROLE_ARN}"
 
-          helm upgrade --install edfp-dev-notification-worker helm/notification-worker -n "$ns" -f helm/notification-worker/values-dev.yaml --wait \
+          helm upgrade --install edfp-dev-notification-worker helm/notification-worker -n "$ns" -f helm/notification-worker/values-dev.yaml --wait --timeout "$HELM_TIMEOUT" \
             --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-notification-worker" \
             --set image.tag="$tag" \
             --set serviceAccount.annotations."eks\\.amazonaws\\.com/role-arn"="${NOTIFICATION_WORKER_ROLE_ARN}"
 
-          helm upgrade --install edfp-dev-api-gateway helm/api-gateway -n "$ns" -f helm/api-gateway/values-dev.yaml --wait \
+          helm upgrade --install edfp-dev-api-gateway helm/api-gateway -n "$ns" -f helm/api-gateway/values-dev.yaml --wait --timeout "$HELM_TIMEOUT" \
             --set image.repository="${account}.dkr.ecr.${region}.amazonaws.com/edfp-dev-api-gateway" \
             --set image.tag="$tag"
 
